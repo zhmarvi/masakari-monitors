@@ -11,7 +11,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+import psutil
 import eventlet
 import socket
 
@@ -46,6 +46,12 @@ class ConsulCheck(driver.DriverBase):
         self.monitoring_data = {}
         self.last_host_health = {}
 
+    @staticmethod
+    def is_interface_up(interface_name):
+        """Check if the specified network interface is up."""
+        net_if_stats = psutil.net_if_stats()
+        return net_if_stats.get(interface_name) and net_if_stats[interface_name].isup
+        
     @property
     def matrix(self):
         if not self._matrix:
@@ -99,7 +105,11 @@ class ConsulCheck(driver.DriverBase):
 
         return event
 
-    def update_monitoring_data(self):
+    def update_monitoring_data(self, interface_name="br-storage"):
+        """Update monitoring data from consul clusters only if the specified interface is up."""
+        if not self.is_interface_up(interface_name):  # Accessing is_interface_up as a static method
+            LOG.warning("Interface %s is down. Skipping update of monitoring data.", interface_name)
+            return
         '''update monitoring data from consul clusters'''
         LOG.debug("update monitoring data from consul.")
         # Get current host health in sequence [x, y, z]. The example of

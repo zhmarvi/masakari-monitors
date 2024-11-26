@@ -38,6 +38,7 @@ class ConsulCheck(driver.DriverBase):
         self.hostname = socket.gethostname()
         self.monitoring_interval = CONF.host.monitoring_interval
         self.monitoring_samples = CONF.host.monitoring_samples
+        self.consul_interface = CONF.consul.consul_interface
         self.matrix_manager = matrix_helper.MatrixManager(CONF)
         self.consul_manager = consul_helper.ConsulManager(CONF)
         self.notifier = masakari.SendNotification()
@@ -105,12 +106,15 @@ class ConsulCheck(driver.DriverBase):
 
         return event
 
-    def update_monitoring_data(self, interface_name="br-storage"):
-        """Update monitoring data from consul clusters only if the specified interface is up."""
-        if not self.is_interface_up(interface_name):  # Accessing is_interface_up as a static method
-            LOG.warning("Interface %s is down. Skipping update of monitoring data.", interface_name)
-            return
+    def update_monitoring_data(self):
         '''update monitoring data from consul clusters'''
+        # This will prevent consul agent on failed node to register a health check, and only allow other
+        # active Hypervisors to resgister failure events.
+        LOG.debug("Update monitoring data from consul clusters only if the specified interface is up.")
+        if not self.is_interface_up(self.consul_interface):  # Accessing is_interface_up as a static method
+            LOG.warning("Interface %s is down. Skipping update of monitoring data.", self.consul_interface)
+            return
+
         LOG.debug("update monitoring data from consul.")
         # Get current host health in sequence [x, y, z]. The example of
         # the return value is {'node01':[x, y, z], 'node02':[x, y, z]...}

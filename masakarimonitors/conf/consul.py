@@ -24,6 +24,8 @@ consul_opts = [
                help='Addr for local consul agent in storage datacenter.'),
     cfg.StrOpt('matrix_config_file',
                help='Config file for consul health action matrix.'),
+    cfg.StrOpt('consul_interface',
+               help='Consul listening interface.'),
 ]
 
 
